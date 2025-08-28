@@ -1,0 +1,124 @@
+<?php
+//app\Models\Cliente.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Cliente extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'razon_social',
+        'dui',
+        'nit',
+        'nrc',
+        'fecha_constitucion',
+        'fecha_inscripcion',
+        'tipo_gobierno',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'fecha_constitucion' => 'date',
+        'fecha_inscripcion' => 'date',
+    ];
+
+    /**
+     * Get the representantes for this client.
+     */
+    public function representantes()
+    {
+        return $this->belongsToMany(
+            Representante::class,
+            'cliente_representante',
+            'cliente_id',
+            'representante_id'
+        )->withTimestamps();
+    }
+
+    public function auditores()
+    {
+        return $this->belongsToMany(
+            Auditor::class,
+            'cliente_auditor',
+            'cliente_id',
+            'auditor_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Get the actividades economicas for this client.
+     */
+    public function actividades()
+    {
+        return $this->belongsToMany(ActividadEconomica::class, 'cliente_actividad', 'cliente_id', 'actividad_id');
+    }
+
+    /**
+     * Get the client accounts for this client.
+     */
+    public function cuentas()
+    {
+        return $this->hasMany(ClientAccount::class, 'cliente_id');
+    }
+
+    /**
+     * Get the tareas clientes for this client.
+     */
+    public function tareasClientes()
+    {
+        return $this->hasMany(TareaCliente::class, 'cliente_id');
+    }
+
+    /**
+     * Get the tareas instancias for this client.
+     */
+    public function instancias()
+    {
+        return $this->hasMany(TareaInstancia::class, 'cliente_id');
+    }
+
+    /**
+     * Get the UIF registros for this client.
+     */
+    public function uifRegistros()
+    {
+        return $this->hasMany(UifRegistro::class, 'cliente_id');
+    }
+
+    /**
+     * Get the MT contratos for this client.
+     */
+    public function mtContratos()
+    {
+        return $this->hasMany(MtContrato::class, 'cliente_id');
+    }
+
+    /**
+     * Get the IVA declaraciones for this client.
+     */
+    public function ivaDeclaraciones()
+    {
+        return $this->hasMany(IvaDeclaracion::class, 'cliente_id');
+    }
+
+    /**
+     * Get the Hacienda presentaciones for this client.
+     */
+    public function haciendaPresentaciones()
+    {
+        return $this->hasMany(HaciendaPresentacion::class, 'cliente_id');
+    }
+}

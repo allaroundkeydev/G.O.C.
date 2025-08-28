@@ -1,0 +1,523 @@
+{
+  "project": {
+    "name": "Sistema de Control de Actividades Contables",
+    "short_name": "SCA-Contable",
+    "stack": {
+      "backend_framework": "Laravel 12",
+      "database": "MySQL (InnoDB, utf8mb4)",
+      "cache_queue": "Redis (opcional pero recomendado)",
+      "mail": "SendGrid / Mailgun (configurable)",
+      "storage": "Local / S3 (configurable)",
+      "auth": "Laravel Sanctum (API) + web sessions"
+    },
+    "timezone": "America/El_Salvador",
+    "language": "es"
+  },
+
+  "summary": "Aplicación web para una oficina contable que permite definir tareas administrativas/tributarias, asignarlas a contadores, relacionarlas con clientes, auditores, representantes legales e instituciones; generar instancias recurrentes, gestionar alertas y mantener históricos (ej. últimas 6 declaraciones de IVA).",
+
+  "objectives": [
+    "Permitir la gestión de tareas tipo y campos configurables por el administrador.",
+    "Permitir la asignación de tareas a clientes y contadores (pivote), con auditor/representante/institución por defecto.",
+    "Crear instancias concretas de tareas (ocurrencias) automáticamente según reglas de recurrencia o manualmente.",
+    "Generar alertas/notificaciones antes de vencimientos y mantener histórico de acciones.",
+    "Registrar datos estructurados específicos (IVA, UIF, contratos MT, etc.).",
+    "Integrar importación de listado de actividades económicas (hasta 800+) y relacionarlas con clientes (máx 3 por cliente)."
+  ],
+
+  "assumptions": [
+    "Se usará MySQL para datos relacionales. Se puede adaptar a otros RDBMS si se requiere.",
+    "Las reglas de negocio (validaciones, umbrales, máximos) se aplican en la capa aplicación (Laravel).",
+    "Se dispondrá de un worker/cron (Laravel Scheduler + queues) para generar instancias y enviar notificaciones.",
+    "Datos sensibles (claves) se encriptarán en la base de datos si fuera necesario."
+  ],
+
+  "data_model": {
+    "notes": "Se provee esquema MySQL compatible. Usar migrations de Laravel. Todas las tablas usan engine InnoDB y charset utf8mb4.",
+    "tables": {
+      "users": {
+        "description": "Administradores y contadores.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "nombre_completo": "varchar(200) NOT NULL",
+          "username": "varchar(100) UNIQUE NOT NULL",
+          "password": "varchar(255) NOT NULL",
+          "telefono": "varchar(50) NULL",
+          "email": "varchar(200) NULL UNIQUE",
+          "rol": "varchar(50) NOT NULL -- valores: 'admin','contador' (validar en app)",
+          "estado": "varchar(50) DEFAULT 'ACTIVO'",
+          "remember_token": "varchar(100) NULL",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL",
+          "deleted_at": "timestamp NULL (softDeletes)"
+        },
+        "indices": ["username","email"]
+      },
+
+      "clientes": {
+        "description": "Clientes de la oficina contable.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "razon_social": "varchar(250) NOT NULL",
+          "dui": "varchar(50) NULL UNIQUE",
+          "nit": "varchar(50) NULL UNIQUE",
+          "nrc": "varchar(50) NULL",
+          "fecha_constitucion": "date NULL",
+          "fecha_inscripcion": "date NULL",
+          "tipo_gobierno": "varchar(100) NULL",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL",
+          "deleted_at": "timestamp NULL"
+        },
+        "indices": ["nit","dui"]
+      },
+
+      "representantes": {
+        "description": "Representantes legales del cliente.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "nombre": "varchar(200) NOT NULL",
+          "fecha_nacimiento": "date NULL",
+          "telefono": "varchar(50) NULL",
+          "correo_electronico": "varchar(200) NULL",
+          "dui": "varchar(50) NULL",
+          "fecha_nombramiento": "date NULL",
+          "duracion_meses": "int NULL",
+          "fecha_fin_nombramiento": "date NULL",
+          "numero_acta": "varchar(100) NULL",
+          "numero_acuerdo": "varchar(100) NULL",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL",
+          "deleted_at": "timestamp NULL"
+        },
+        "indices": ["cliente_id","dui"]
+      },
+
+      "auditores": {
+        "description": "Auditores relacionados a clientes.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "nombre": "varchar(200) NOT NULL",
+          "telefono": "varchar(50) NULL",
+          "correo_electronico": "varchar(200) NULL",
+          "empresa": "varchar(200) NULL",
+          "num_vpcpa": "varchar(100) NULL",
+          "nombrado": "boolean DEFAULT FALSE",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL",
+          "deleted_at": "timestamp NULL"
+        },
+        "indices": ["num_vpcpa"]
+      },
+
+      "instituciones": {
+        "description": "Alcaldía, Ministerio de Trabajo, UIF, Hacienda, etc.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "nombre": "varchar(200) NOT NULL",
+          "descripcion": "text NULL",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL"
+        }
+      },
+
+      "actividad_economica": {
+        "description": "Catalogo (se importará listado externo).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "codigo": "varchar(50) UNIQUE NOT NULL",
+          "descripcion": "varchar(250) NOT NULL"
+        }
+      },
+
+      "cliente_actividad": {
+        "description": "Pivot cliente <-> actividad (max 3 por cliente, validar en app).",
+        "columns": {
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "actividad_id": "unsignedBigInteger NOT NULL FK -> actividad_economica.id",
+          "created_at": "timestamp NULL"
+        },
+        "primary_key": ["cliente_id","actividad_id"]
+      },
+
+      "client_accounts": {
+        "description": "Códigos/identificadores del cliente (ej. cuenta de catastro).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "tipo": "varchar(100) NOT NULL -- ej: 'catastro','codigo_hacienda'",
+          "valor": "varchar(200) NOT NULL",
+          "descripcion": "text NULL",
+          "activo": "boolean DEFAULT TRUE",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL"
+        },
+        "indices": ["cliente_id","tipo"]
+      },
+
+      "tareas": {
+        "description": "Catálogo de tareas (plantillas).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "nombre": "varchar(200) NOT NULL",
+          "descripcion": "text NULL",
+          "institucion_id": "unsignedBigInteger NULL FK -> instituciones.id",
+          "created_by": "unsignedBigInteger NULL FK -> users.id",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL",
+          "deleted_at": "timestamp NULL"
+        },
+        "indices": ["nombre"]
+      },
+
+      "tareas_campos": {
+        "description": "Campos configurables por tarea (formularios dinámicos).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "tarea_id": "unsignedBigInteger NOT NULL FK -> tareas.id",
+          "nombre": "varchar(150) NOT NULL -- identificador interno",
+          "etiqueta": "varchar(200) NULL",
+          "descripcion": "text NULL",
+          "tipo": "varchar(50) NOT NULL -- 'numerico','texto','fecha','booleano','entidad','lista','moneda'",
+          "obligatorio": "boolean DEFAULT FALSE",
+          "opciones": "text NULL -- JSON text para listas",
+          "orden": "int DEFAULT 0",
+          "meta": "text NULL -- JSON text",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL"
+        },
+        "indices": ["tarea_id","nombre"]
+      },
+
+      "tareas_clientes": {
+        "description": "Pivot: qué tarea aplica a qué cliente y asignaciones por defecto.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "tarea_id": "unsignedBigInteger NOT NULL FK -> tareas.id",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "contador_id": "unsignedBigInteger NULL FK -> users.id",
+          "auditor_id": "unsignedBigInteger NULL FK -> auditores.id",
+          "representante_id": "unsignedBigInteger NULL FK -> representantes.id",
+          "institucion_id": "unsignedBigInteger NULL FK -> instituciones.id",
+          "recurrence_rule": "text NULL -- almacenar RRULE o JSON de recurrencia",
+          "alerta_dias_antes": "int DEFAULT 7",
+          "activo": "boolean DEFAULT TRUE",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL"
+        },
+        "unique": ["tarea_id","cliente_id"],
+        "indices": ["cliente_id","tarea_id"]
+      },
+
+      "tareas_instancias": {
+        "description": "Instancias concretas (ocurrencias) de una tarea que un contador debe ejecutar.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "tarea_id": "unsignedBigInteger NOT NULL FK -> tareas.id",
+          "tarea_cliente_id": "unsignedBigInteger NULL FK -> tareas_clientes.id",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "contador_id": "unsignedBigInteger NULL FK -> users.id",
+          "auditor_id": "unsignedBigInteger NULL FK -> auditores.id",
+          "representante_id": "unsignedBigInteger NULL FK -> representantes.id",
+          "estado": "varchar(50) DEFAULT 'PENDIENTE' -- validar en app",
+          "fecha_vencimiento": "datetime NULL",
+          "fecha_realizacion": "datetime NULL",
+          "notas": "text NULL",
+          "datos_snapshot": "text NULL -- JSON serializado opcional",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL",
+          "deleted_at": "timestamp NULL"
+        },
+        "indices": ["cliente_id","fecha_vencimiento","estado","contador_id"]
+      },
+
+      "tareas_instancia_valores": {
+        "description": "Valores de campos por instancia (normalizado).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "instancia_id": "unsignedBigInteger NOT NULL FK -> tareas_instancias.id",
+          "campo_id": "unsignedBigInteger NOT NULL FK -> tareas_campos.id",
+          "valor_text": "text NULL",
+          "valor_num": "decimal(18,2) NULL",
+          "valor_fecha": "date NULL",
+          "valor_bool": "boolean NULL",
+          "valor_entity_type": "varchar(100) NULL",
+          "valor_entity_id": "unsignedBigInteger NULL",
+          "created_at": "timestamp NULL"
+        },
+        "unique": ["instancia_id","campo_id"]
+      },
+
+      "notifications": {
+        "description": "Histórico de notificaciones enviadas (y por enviar).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "instancia_id": "unsignedBigInteger NULL FK -> tareas_instancias.id",
+          "tipo": "varchar(50) NOT NULL -- 'email','sms','push'",
+          "destinatario": "varchar(250) NOT NULL",
+          "umbral_days_before": "int NULL",
+          "enviado": "boolean DEFAULT FALSE",
+          "enviado_at": "datetime NULL",
+          "payload": "text NULL",
+          "created_at": "timestamp NULL"
+        },
+        "indices": ["instancia_id","destinatario"]
+      },
+
+      "audit_logs": {
+        "description": "Registros de auditoría para cambios importantes.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "entidad": "varchar(100) NOT NULL",
+          "entidad_id": "unsignedBigInteger NULL",
+          "accion": "varchar(100) NOT NULL",
+          "usuario_id": "unsignedBigInteger NULL FK -> users.id",
+          "detalles": "text NULL -- JSON",
+          "created_at": "timestamp NULL"
+        }
+      },
+
+      "uif_registros": {
+        "description": "Inscripción y credenciales UIF.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "fecha_inscripcion": "date NULL",
+          "usuario_nit": "varchar(100) NULL",
+          "clave_encriptada": "varchar(255) NULL",
+          "correo_registro": "varchar(200) NULL",
+          "created_at": "timestamp NULL",
+          "updated_at": "timestamp NULL"
+        },
+        "security_note": "Almacenar 'clave_encriptada' con cifrado reversible si la aplicación necesita usarla, o almacenar solo referencias seguras."
+      },
+
+      "mt_contratos": {
+        "description": "Contratos cargados al Ministerio de Trabajo (registro por contratación).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "fecha_contrato": "date NOT NULL",
+          "descripcion": "text NULL",
+          "archivo_referencia": "varchar(255) NULL",
+          "created_at": "timestamp NULL"
+        },
+        "indices": ["cliente_id","fecha_contrato"]
+      },
+
+      "iva_declaraciones": {
+        "description": "Histórico estructurado de declaraciones IVA (se conservarán las últimas 6 por cliente).",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "periodo_inicio": "date NOT NULL",
+          "periodo_fin": "date NOT NULL",
+          "fecha_presentacion": "date NULL",
+          "monto_a_pagar": "decimal(18,2) NULL",
+          "plazo": "boolean DEFAULT FALSE",
+          "cantidad_cuotas": "int DEFAULT 0",
+          "dia_pago": "int NULL",
+          "created_at": "timestamp NULL"
+        },
+        "indices": ["cliente_id","fecha_presentacion"]
+      },
+
+      "hacienda_presentaciones": {
+        "description": "Otros formularios y presentaciones a Hacienda.",
+        "columns": {
+          "id": "unsignedBigInteger PK AUTO_INCREMENT",
+          "cliente_id": "unsignedBigInteger NOT NULL FK -> clientes.id",
+          "tipo_presentacion": "varchar(50) NOT NULL -- 'ISR','PAGO_A_CUENTA','F211', etc.",
+          "fecha_presentacion": "date NULL",
+          "monto": "decimal(18,2) NULL",
+          "observaciones": "text NULL",
+          "created_at": "timestamp NULL"
+        },
+        "indices": ["cliente_id","tipo_presentacion"]
+      }
+    }
+  },
+
+  "business_rules": {
+    "max_actividades_por_cliente": 3,
+    "iva_history_keep": 6,
+    "tareas_sin_asignar": "tareas_clientes.contador_id puede ser NULL; instancias pueden quedar sin asignación hasta que admin asigne",
+    "field_types_supported": ["numerico","texto","fecha","booleano","entidad","lista","moneda"],
+    "entidad_field_handling": "tipo 'entidad' en tareas_campos almacena en tareas_instancia_valores valor_entity_type y valor_entity_id",
+    "recurrence_storage": "usar RFC5545 RRULE como texto o JSON estructurado en tareas_clientes.recurrence_rule",
+    "alertas": "alerta_dias_antes en tareas_clientes; worker generará notifications y evitará duplicados (consultando notifications existente)"
+  },
+
+  "api_spec": {
+    "auth": {
+      "login": "POST /api/auth/login (email/username + password) -> token (Sanctum)",
+      "refresh": "POST /api/auth/refresh",
+      "logout": "POST /api/auth/logout"
+    },
+    "users": {
+      "list": "GET /api/users (admin)",
+      "create": "POST /api/users",
+      "update": "PUT /api/users/{id}",
+      "delete": "DELETE /api/users/{id}"
+    },
+    "clientes": {
+      "list": "GET /api/clientes",
+      "create": "POST /api/clientes",
+      "update": "PUT /api/clientes/{id}",
+      "show": "GET /api/clientes/{id}"
+    },
+    "tareas": {
+      "catalog": {
+        "list": "GET /api/tareas",
+        "create": "POST /api/tareas",
+        "update": "PUT /api/tareas/{id}",
+        "delete": "DELETE /api/tareas/{id}"
+      },
+      "campos": {
+        "list": "GET /api/tareas/{tarea_id}/campos",
+        "create": "POST /api/tareas/{tarea_id}/campos",
+        "update": "PUT /api/tareas_campos/{id}",
+        "delete": "DELETE /api/tareas_campos/{id}"
+      },
+      "clientes_assign": {
+        "assign": "POST /api/tareas-clientes",
+        "list": "GET /api/tareas-clientes?cliente_id=&tarea_id=&activo=",
+        "update": "PUT /api/tareas-clientes/{id}",
+        "delete": "DELETE /api/tareas-clientes/{id}"
+      },
+      "instancias": {
+        "list": "GET /api/tareas-instancias?cliente_id=&estado=&contador_id=",
+        "create": "POST /api/tareas-instancias",
+        "show": "GET /api/tareas-instancias/{id}",
+        "update": "PUT /api/tareas-instancias/{id} -- para cambiar estado, asignar contador, adjuntar notas",
+        "values": "POST /api/tareas-instancias/{id}/valores -- para guardar valores de los campos dinámicos"
+      }
+    },
+    "hacienda": {
+      "iva": {
+        "create_declaration": "POST /api/iva-declaraciones",
+        "list_recent": "GET /api/iva-declaraciones?cliente_id=&limit=6"
+      },
+      "presentations": "POST /api/hacienda-presentaciones"
+    },
+    "mt": {
+      "upload_contract": "POST /api/mt/contratos"
+    },
+    "uif": {
+      "register": "POST /api/uif/registros"
+    },
+    "notifications": {
+      "list": "GET /api/notifications?enviado=",
+      "mark_sent": "PUT /api/notifications/{id}/sent"
+    },
+    "reports": {
+      "tasks_due": "GET /api/reports/tasks-due?days=7",
+      "tasks_by_status": "GET /api/reports/tasks-by-status"
+    }
+  },
+
+  "backend_architecture": {
+    "layers": [
+      "Migrations: crear tablas con claves foráneas, índices y softDeletes.",
+      "Models: Eloquent models con relaciones definidas (belongsTo, hasMany, belongsToMany).",
+      "Repositories/Services (opcional): para lógica de negocio compleja (recurrencia, snapshot de datos).",
+      "Controllers: RESTful controllers con FormRequests para validaciones.",
+      "Policies/Gates: control de acceso (Admin vs Contador).",
+      "Events & Listeners: emitir eventos al crear/actualizar instancias para notificaciones y logs.",
+      "Jobs & Queues: enviar emails/SMS y procesar importaciones/cleanups.",
+      "Scheduler: comandos artisan registrados en Kernel (schedule) para: generar instancias, enviar alertas y limpieza hist. IVA."
+    ]
+  },
+
+  "scheduler_jobs_and_workers": {
+    "generate_task_instances": {
+      "description": "Lee tareas_clientes activas con recurrence_rule y crea tareas_instancias para próximas fechas.",
+      "schedule": "Diario (configurable) o cada hora según preferencia.",
+      "idempotency": "Solo crear instancias futuras que no existan (usar unique por tarea_cliente + period)."
+    },
+    "create_from_representante_nombramientos": {
+      "description": "Detecta representantes con fecha_fin_nombramiento próxima y crea instancia de renovación.",
+      "schedule": "Diario"
+    },
+    "send_notifications": {
+      "description": "Busca tareas_instancias con fecha_vencimiento en umbral (alerta_dias_antes) y crea/enruta notificaciones (email/push/SMS).",
+      "schedule": "Cada 15 minutos"
+    },
+    "prune_iva_history": {
+      "description": "Mantiene solo las últimas 6 declaraciones IVA por cliente (borrar más antiguas).",
+      "schedule": "Diario"
+    }
+  },
+
+  "ui_requirements": {
+    "general": [
+      "Multilenguaje inicialmente español.",
+      "Dashboard administrador: resumen de tareas por estado, próximas caducidades, tareas sin asignar.",
+      "Lista de tareas/instancias: filtros por cliente, contador, estado, institución, fecha_vencimiento.",
+      "Ficha cliente: info general, cuentas (catastro), representantes, auditores, actividades económicas, historial de tareas e instancias.",
+      "Formulario: creación/edición de tareas y campos dinámicos por admin.",
+      "Calendario: vista mensual/semanal con vencimientos.",
+      "Notificaciones internas: badge y lista."
+    ],
+    "ux_notes": [
+      "Validar en frontend y backend las reglas: máx 3 actividades por cliente.",
+      "Cuando un campo sea tipo 'entidad' mostrar selector con búsqueda (auditores/representantes/instituciones).",
+      "Mostrar snapshot JSON de valores clave en la ficha de instancia para búsqueda rápida."
+    ]
+  },
+
+  "security_and_compliance": {
+    "passwords": "Bcrypt/Argon2 (usar Hash::make en Laravel).",
+    "transport": "TLS obligatorio para todas las conexiones.",
+    "sensitive_data": "Campos sensibles (p. ej. claves UIF) cifrados en BD (Laravel encryption) o almacenados en secreto seguro.",
+    "roles": "RBAC básico: admin y contador. Policies para limitar acciones.",
+    "audit": "Guardar audit_logs para cambios de estado y asignaciones."
+  },
+
+  "dev_tasks_and_deliverables": {
+    "migrations": "Todas las migraciones para tablas definidas con foreign keys e índices.",
+    "seeders": [
+      "Crear seeder para instituciones (Alcaldía, Ministerio de Trabajo, UIF, Hacienda).",
+      "Seeder para roles/usuario admin demo.",
+      "Script / seeder para importar listado de actividad_economica desde CSV/SQL."
+    ],
+    "models": "Eloquent models con relaciones y scopes importantes (ej. scopeDueSoon).",
+    "controllers": "Controllers RESTful y FormRequests para validación.",
+    "policies": "Policies para controlar accesos de admin/contador.",
+    "jobs": "Jobs para generar instancias, enviar notificaciones, pruning IVA.",
+    "tests": [
+      "Unit tests para modelos y reglas (max 3 actividades).",
+      "Feature tests para endpoints clave (crear tarea, asignar tarea, generar instancia).",
+      "Integration test para scheduler job principal."
+    ],
+    "documentation": [
+      "README con instrucciones de instalación (env, migration, seed, queue, scheduler).",
+      "ER diagram (PNG/SVG).",
+      "OpenAPI spec (JSON/YAML) mínimo para endpoints públicos."
+    ]
+  },
+
+  "acceptance_criteria": [
+    "Admin puede crear/editar tareas (tareas + tareas_campos) y asignarlas a clientes (tareas_clientes).",
+    "El sistema genera instancias (tareas_instancias) automáticamente según recurrence_rule o a partir de la fecha_fin_nombramiento de representantes.",
+    "Se envían notificaciones (al menos email) antes del vencimiento respetando alerta_dias_antes configurada y evitando duplicados.",
+    "Se puede registrar/consultar declaraciones IVA y el sistema conserva únicamente las últimas 6 por cliente (job automático).",
+    "Usuarios con rol 'contador' solo acceden a las tareas/instancias que les son asignadas o que están sin asignar si el admin permite.",
+    "Se puede importar el catálogo de actividad_economica y asignar hasta 3 actividades por cliente con validación."
+  ],
+
+  "deployment_and_ops": {
+    "env": "configurar variables APP_KEY, DB_CONNECTION, MAIL_*, REDIS_*",
+    "queues": "Configurar queue worker (horizon o supervisor) para procesar jobs",
+    "scheduler": "Configurar cron para ejecutar 'php artisan schedule:run' cada minuto",
+    "backups": "Backups diarios de MySQL, retention configurable",
+    "monitoring": "Logs y alertas de errores (Sentry u otro)"
+  },
+
+  "notes_and_next_steps": [
+    "Si estás de acuerdo puedo generar las migraciones completas en SQL/Laravel migrations para MySQL (incluyendo constraints y softDeletes).",
+    "Puedo también generar un OpenAPI/Swagger básico y el diagrama ER.",
+    "Indica si quieres que incluya plantillas de emails para notificaciones (recordatorio 30/7/2/1 días) y si deseas integración SMS (Twilio) en fase 1."
+  ]
+}
