@@ -15,7 +15,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
+        return view('dashboard');
     })->name('dashboard');
 
     Route::resource('iva-declaraciones', IvaDeclaracionController::class);

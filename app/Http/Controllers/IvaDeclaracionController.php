@@ -30,7 +30,7 @@ class IvaDeclaracionController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return Inertia::render('IvaDeclaraciones/Index', [
+        return view('iva-declaraciones.index', [
             'ivaDeclaraciones' => $ivaDeclaraciones,
             'filters' => $request->only(['search']),
         ]);
@@ -41,7 +41,7 @@ class IvaDeclaracionController extends Controller
      */
     public function create()
     {
-        return Inertia::render('IvaDeclaraciones/Create', [
+        return view('iva-declaraciones.create', [
             'clientes' => Cliente::all(['id', 'nombre']),
         ]);
     }
@@ -61,7 +61,7 @@ class IvaDeclaracionController extends Controller
     public function show(IvaDeclaracion $ivaDeclaracion)
     {
         $ivaDeclaracion->load('cliente');
-        return Inertia::render('IvaDeclaraciones/Show', [
+        return view('iva-declaraciones.show', [
             'ivaDeclaracion' => $ivaDeclaracion,
         ]);
     }
@@ -71,7 +71,7 @@ class IvaDeclaracionController extends Controller
      */
     public function edit(IvaDeclaracion $ivaDeclaracion)
     {
-        return Inertia::render('IvaDeclaraciones/Edit', [
+        return view('iva-declaraciones.edit', [
             'ivaDeclaracion' => $ivaDeclaracion,
             'clientes' => Cliente::all(['id', 'nombre']),
         ]);
