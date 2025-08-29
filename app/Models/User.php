@@ -1,53 +1,48 @@
 <?php
+
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
-        'nombre_completo',
-        'username',
-        'password',
-        'telefono',
+        'name',
         'email',
-        'rol',
-        'estado',
+        'password',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    // CORRECCIÓN: usar propiedad $casts (no método)
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-    ];
-
-    public function isAdmin(): bool
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        return $this->rol === 'admin';
-    }
-
-    public function isContador(): bool
-    {
-        return $this->rol === 'contador';
-    }
-
-    public function tareasAsignadas()
-    {
-        return $this->hasMany(TareaCliente::class, 'contador_id');
-    }
-
-    public function instanciasAsignadas()
-    {
-        return $this->hasMany(TareaInstancia::class, 'contador_id');
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 }
