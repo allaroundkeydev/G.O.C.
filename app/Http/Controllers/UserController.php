@@ -1,12 +1,13 @@
 <?php
-//app\Http\Controllers\UserController.php
+// app/Http/Controllers/UserController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
-use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -16,55 +17,83 @@ class UserController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
+     * 1. Listado de usuarios con paginación.
      */
-    public function index()
+    public function index(): View
     {
-        return User::all();
+        $users = User::orderBy('id', 'desc')->paginate(10);
+        return view('users.index', compact('users'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * 2. Mostrar formulario de creación.
      */
-    public function store(StoreUserRequest $request)
+    public function create(): View
     {
-        $validated = $request->validated();
-        $validated['password'] = Hash::make($validated['password']);
-
-        $user = User::create($validated);
-
-        return response()->json($user, 201);
+        return view('users.create');
     }
 
     /**
-     * Display the specified resource.
+     * 3. Almacenar nuevo usuario y redirigir.
      */
-    public function show(User $user)
+    public function store(StoreUserRequest $request): RedirectResponse
     {
-        return $user;
+        $data = $request->validated();
+        // Hashear contraseña
+        $data['password'] = bcrypt($data['password']);
+
+        User::create($data);
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'Usuario creado correctamente.');
     }
 
     /**
-     * Update the specified resource in storage.
+     * 4. Ver detalles de un usuario (opcional).
      */
-    public function update(UpdateUserRequest $request, User $user)
+    public function show(User $user): View
     {
-        $validated = $request->validated();
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
+        return view('users.show', compact('user'));
+    }
+
+    /**
+     * 5. Mostrar formulario de edición.
+     */
+    public function edit(User $user): View
+    {
+        return view('users.edit', compact('user'));
+    }
+
+    /**
+     * 6. Actualizar usuario y redirigir.
+     */
+    public function update(UpdateUserRequest $request, User $user): RedirectResponse
+    {
+        $data = $request->validated();
+
+        if (isset($data['password']) && $data['password'] !== '') {
+            $data['password'] = bcrypt($data['password']);
+        } else {
+            unset($data['password']);
         }
 
-        $user->update($validated);
+        $user->update($data);
 
-        return response()->json($user, 200);
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'Usuario actualizado correctamente.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * 7. Eliminar (soft delete) y redirigir.
      */
-    public function destroy(User $user)
+    public function destroy(User $user): RedirectResponse
     {
         $user->delete();
-        return response()->json(null, 204);
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'Usuario eliminado correctamente.');
     }
 }

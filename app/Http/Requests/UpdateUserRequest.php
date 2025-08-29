@@ -1,5 +1,6 @@
 <?php
-//app\Http\Requests\UpdateUserRequest.php
+// app/Http/Requests/UpdateUserRequest.php
+
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
@@ -7,42 +8,36 @@ use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return true; // We will handle authorization with policies
+        // Podrías validar con policies:
+        // return $this->user()->can('update', $this->route('user'));
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
-     */
     public function rules(): array
     {
         $userId = $this->route('user')->id;
 
         return [
-            'nombre_completo' => 'sometimes|required|string|max:200',
-            'username' => [
-                'sometimes',
+            'nombre_completo' => 'required|string|max:200',
+            'username'        => [
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('users')->ignore($userId),
+                Rule::unique('users', 'username')->ignore($userId),
             ],
-            'password' => 'sometimes|required|string|min:8',
-            'telefono' => 'nullable|string|max:50',
-            'email' => [
+            // Permitimos que quede vacío (no cambie) o cumpla min:8
+            'password'        => 'nullable|string|min:8',
+            'telefono'        => 'nullable|string|max:50',
+            'email'           => [
                 'nullable',
-                'string',
                 'email',
                 'max:200',
-                Rule::unique('users')->ignore($userId),
+                Rule::unique('users', 'email')->ignore($userId),
             ],
-            'rol' => 'sometimes|required|string|in:admin,contador',
+            'rol'             => 'required|in:admin,contador',
+            'estado'          => 'nullable|in:ACTIVO,INACTIVO',
         ];
     }
 }

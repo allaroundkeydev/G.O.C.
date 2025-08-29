@@ -1,46 +1,72 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('login') }}">
+    <form
+        method="POST"
+        action="{{ route('login') }}"
+        class="max-w-md mx-auto p-6 bg-surface dark:bg-surface-dark rounded-lg shadow"
+    >
         @csrf
 
-        <!-- Email Address -->
+        <!-- Usuario -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-input-label for="username" :value="__('Usuario')" />
+            <x-text-input
+                id="username"
+                name="username"
+                type="text"
+                :value="old('username')"
+                required
+                autofocus
+                class="block mt-1 w-full
+                       border border-border dark:border-border-dark
+                       focus:ring-2 focus:ring-primary/50 focus:border-primary
+                       dark:bg-surface-dark dark:text-text-dark"
+            />
+            <x-input-error
+                :messages="$errors->get('username')"
+                class="mt-2 text-error"
+            />
         </div>
 
-        <!-- Password -->
+        <!-- Contraseña -->
         <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+            <x-input-label for="password" :value="__('Contraseña')" />
+            <x-text-input
+                id="password"
+                name="password"
+                type="password"
+                required
+                class="block mt-1 w-full
+                       border border-border dark:border-border-dark
+                       focus:ring-2 focus:ring-primary/50 focus:border-primary
+                       dark:bg-surface-dark dark:text-text-dark"
+            />
+            <x-input-error
+                :messages="$errors->get('password')"
+                class="mt-2 text-error"
+            />
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
+        <!-- Recordarme -->
+        <div class="flex items-center mt-4">
+            <input
+                id="remember_me"
+                name="remember"
+                type="checkbox"
+                class="rounded border-border dark:border-border-dark
+                       text-primary focus:ring-primary"
+            />
+            <label
+                for="remember_me"
+                class="ml-2 text-sm text-text dark:text-text-dark"
+            >
+                {{ __('Recordarme') }}
             </label>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
+        <!-- Botón Ingresar -->
+        <div class="flex items-center justify-end mt-6">
+            <x-primary-button class="ml-3">
+                {{ __('Ingresar') }}
             </x-primary-button>
         </div>
     </form>

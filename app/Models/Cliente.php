@@ -10,11 +10,6 @@ class Cliente extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'razon_social',
         'dui',
@@ -25,19 +20,11 @@ class Cliente extends Model
         'tipo_gobierno',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'fecha_constitucion' => 'date',
-        'fecha_inscripcion' => 'date',
+        'fecha_inscripcion'  => 'date',
     ];
 
-    /**
-     * Get the representantes for this client.
-     */
     public function representantes()
     {
         return $this->belongsToMany(
@@ -58,12 +45,14 @@ class Cliente extends Model
         )->withTimestamps();
     }
 
-    /**
-     * Get the actividades economicas for this client.
-     */
     public function actividades()
     {
-        return $this->belongsToMany(ActividadEconomica::class, 'cliente_actividad', 'cliente_id', 'actividad_id');
+        return $this->belongsToMany(
+            ActividadEconomica::class,
+            'cliente_actividad',
+            'cliente_id',
+            'actividad_id'
+        );
     }
 
     /**

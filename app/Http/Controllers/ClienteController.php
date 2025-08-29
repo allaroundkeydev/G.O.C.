@@ -1,45 +1,13 @@
 <?php
+// app/Http/Controllers/ClienteController.php
 
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Http\Requests\StoreClienteRequest;
 use App\Http\Requests\UpdateClienteRequest;
-
-class ClienteController extends Controller
-{
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        return Cliente::all();
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreClienteRequest $request)
-    {
-        $cliente = Cliente::create($request->validated());
-        return response()->json($cliente, 201);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cliente $cliente)
-    {
-        return $cliente;
-    }
-
-    <?php
-
-namespace App\Http\Controllers;
-
-use App\Models\Cliente;
-use App\Http\Requests\StoreClienteRequest;
-use App\Http\Requests\UpdateClienteRequest;
+use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class ClienteController extends Controller
 {
@@ -48,57 +16,58 @@ class ClienteController extends Controller
         $this->authorizeResource(Cliente::class, 'cliente');
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-
+    // 1. Listado con paginación
+    public function index(): View
     {
-        return Cliente::all();
+        $clientes = Cliente::orderByDesc('id')->paginate(10);
+        return view('clientes.index', compact('clientes'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreClienteRequest $request)
+    // 2. Formulario creación
+    public function create(): View
     {
-        $cliente = Cliente::create($request->validated());
-        return response()->json($cliente, 201);
+        return view('clientes.create');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cliente $cliente)
+    // 3. Guardar nuevo
+    public function store(StoreClienteRequest $request): RedirectResponse
     {
-        return $cliente;
+        Cliente::create($request->validated());
+
+        return redirect()
+            ->route('clientes.index')
+            ->with('success', 'Cliente creado correctamente.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateClienteRequest $request, Cliente $cliente)
+    // 4. Ver detalle (opcional)
+    public function show(Cliente $cliente): View
+    {
+        return view('clientes.show', compact('cliente'));
+    }
+
+    // 5. Formulario edición
+    public function edit(Cliente $cliente): View
+    {
+        return view('clientes.edit', compact('cliente'));
+    }
+
+    // 6. Actualizar registro
+    public function update(UpdateClienteRequest $request, Cliente $cliente): RedirectResponse
     {
         $cliente->update($request->validated());
-        return response()->json($cliente, 200);
+
+        return redirect()
+            ->route('clientes.index')
+            ->with('success', 'Cliente actualizado correctamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cliente $cliente)
+    // 7. Eliminar (soft delete)
+    public function destroy(Cliente $cliente): RedirectResponse
     {
         $cliente->delete();
-        return response()->json(null, 204);
-    }
-}
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cliente $cliente)
-    {
-        $cliente->delete();
-        return response()->json(null, 204);
+        return redirect()
+            ->route('clientes.index')
+            ->with('success', 'Cliente eliminado correctamente.');
     }
 }
