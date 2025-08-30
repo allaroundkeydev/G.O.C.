@@ -40,12 +40,10 @@ class Auditor extends Model
 
     public function clientes()
 {
-    return $this->belongsToMany(
-        Cliente::class,
-        'cliente_auditor',
-        'auditor_id',
-        'cliente_id'
-    )->withTimestamps();
+    return $this->belongsToMany(Cliente::class, 'cliente_auditor', 'auditor_id', 'cliente_id')
+                ->using(ClienteAuditor::class)
+                ->withPivot(['id','fecha_nombramiento','fecha_fin_nombramiento','activo','notas'])
+                ->withTimestamps();
 }
 
 

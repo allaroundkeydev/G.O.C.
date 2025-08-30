@@ -56,13 +56,27 @@
             </div>
           </div>
 
-          <div class="mb-6">
-            <x-input-label for="tipo_gobierno" :value="__('Tipo de Gobierno')" />
-            <x-text-input id="tipo_gobierno" name="tipo_gobierno" type="text"
-                          value="{{ old('tipo_gobierno', $cliente->tipo_gobierno) }}"
-                          class="block mt-1 w-full border border-border dark:border-border-dark" />
-            <x-input-error :messages="$errors->get('tipo_gobierno')" class="mt-2 text-error"/>
-          </div>
+
+<!-- Tipo de Gobierno -->
+<div class="mb-6">
+    <x-input-label for="tipo_gobierno" :value="__('Tipo de Gobierno')" />
+    <select
+        id="tipo_gobierno"
+        name="tipo_gobierno"
+        class="block mt-1 w-full border border-border dark:border-border-dark rounded-md shadow-sm"
+    >
+        <option value="" disabled>Seleccione una opción</option>
+        <option value="representante"
+            {{ old('tipo_gobierno', $cliente->tipo_gobierno) === 'representante' ? 'selected' : '' }}>
+            Representante Legal
+        </option>
+        <option value="administrador_unico"
+            {{ old('tipo_gobierno', $cliente->tipo_gobierno) === 'administrador_unico' ? 'selected' : '' }}>
+            Administrador Único
+        </option>
+    </select>
+    <x-input-error :messages="$errors->get('tipo_gobierno')" class="mt-2 text-error"/>
+</div>
 
           <div class="flex justify-end">
             <x-primary-button>

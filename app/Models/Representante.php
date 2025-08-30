@@ -17,31 +17,29 @@ class Representante extends Model
         'telefono',
         'correo_electronico',
         'dui',
-        'fecha_nombramiento',
+        
         'duracion_meses',
-        'fecha_fin_nombramiento',
+        
         'numero_acta',
         'numero_acuerdo',
     ];
 
     protected $casts = [
         'fecha_nacimiento' => 'date',
-        'fecha_nombramiento' => 'date',
-        'fecha_fin_nombramiento' => 'date',
+        
+        
     ];
 
     /**
      * Clientes a los que está vinculado (pivote cliente_representante).
      */
     public function clientes()
-    {
-        return $this->belongsToMany(
-            Cliente::class,
-            'cliente_representante',
-            'representante_id',
-            'cliente_id'
-        )->withTimestamps();
-    }
+{
+    return $this->belongsToMany(Cliente::class, 'cliente_representante', 'representante_id', 'cliente_id')
+                ->using(ClienteRepresentante::class)
+                ->withPivot(['id','fecha_nombramiento','duracion_meses','fecha_fin_nombramiento','numero_acta','numero_acuerdo','activo'])
+                ->withTimestamps();
+}
 
     /**
      * Instancias de tarea que involucren a este representante.

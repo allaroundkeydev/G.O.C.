@@ -10,19 +10,33 @@ class ClienteRepresentante extends Pivot
 
     protected $table = 'cliente_representante';
 
-    // Si quieres que sea manejable como modelo Eloquent (timestamps true)
-    public $incrementing = false;
+    protected $primaryKey = 'id';
+    public $incrementing = true;
     public $timestamps = true;
 
     protected $fillable = [
         'cliente_id',
         'representante_id',
-        // agrega más campos si luego necesitas (fecha_inicio, activo, rol, etc.)
+        'fecha_nombramiento',
+        'duracion_meses',
+        'fecha_fin_nombramiento',
+        'numero_acta',
+        'numero_acuerdo',
+        'activo',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [
+        'id' => 'integer',
         'cliente_id' => 'integer',
         'representante_id' => 'integer',
+        'fecha_nombramiento' => 'date',
+        'fecha_fin_nombramiento' => 'date',
+        'duracion_meses' => 'integer',
+        'activo' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function cliente()

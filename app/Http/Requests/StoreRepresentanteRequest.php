@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreRepresentanteRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'nombre'              => 'required|string|max:200',
+            'fecha_nacimiento'    => 'nullable|date',
+            'telefono'            => 'nullable|string|max:50',
+            'correo_electronico'  => 'nullable|email|max:200',
+            'dui'                 => 'nullable|string|max:50',
+            'fecha_nombramiento'  => 'nullable|date',
+            'duracion_meses'      => 'nullable|integer|min:1',
+            'fecha_fin_nombramiento' => 'nullable|date|after_or_equal:fecha_nombramiento',
+            'numero_acta'         => 'nullable|string|max:100',
+            'numero_acuerdo'      => 'nullable|string|max:100',
+        ];
+    }
+}

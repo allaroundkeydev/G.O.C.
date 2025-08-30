@@ -13,15 +13,11 @@ class RepresentanteFactory extends Factory
     {
         return [
             'nombre' => $this->faker->name(),
-            'fecha_nacimiento' => $this->faker->date(),
-            'telefono' => $this->faker->phoneNumber(),
-            'correo_electronico' => $this->faker->unique()->safeEmail(),
-            'dui' => $this->faker->numerify('########-#'),
-            'fecha_nombramiento' => $this->faker->date(),
-            'duracion_meses' => $this->faker->numberBetween(12, 60),
-            'fecha_fin_nombramiento' => $this->faker->date(),
-            'numero_acta' => $this->faker->bothify('ACTA-####'),
-            'numero_acuerdo' => $this->faker->bothify('ACU-####'),
+            'fecha_nacimiento' => $this->faker->optional()->date(),
+            'telefono' => $this->faker->optional()->phoneNumber(),
+            'correo_electronico' => $this->faker->optional()->safeEmail(),
+            'dui' => $this->faker->optional()->numerify('########-#'),
+            // ya no generar fecha_nombramiento, duracion_meses, etc. aquí
         ];
     }
 }

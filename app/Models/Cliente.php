@@ -25,25 +25,34 @@ class Cliente extends Model
         'fecha_inscripcion'  => 'date',
     ];
 
-    public function representantes()
-    {
-        return $this->belongsToMany(
-            Representante::class,
-            'cliente_representante',
-            'cliente_id',
-            'representante_id'
-        )->withTimestamps();
-    }
+public function auditores()
+{
+    return $this->belongsToMany(
+        Auditor::class,
+        'cliente_auditor',
+        'cliente_id',
+        'auditor_id'
+    )
+    ->withPivot([
+        'fecha_nombramiento',
+        'fecha_fin_nombramiento',
+        'activo',
+        'notas'
+    ])
+    ->withTimestamps()
+    ->orderByDesc('pivot_fecha_nombramiento'); // 👈 ordena por fecha más reciente
+}
 
-    public function auditores()
-    {
-        return $this->belongsToMany(
-            Auditor::class,
-            'cliente_auditor',
-            'cliente_id',
-            'auditor_id'
-        )->withTimestamps();
-    }
+
+
+
+public function representantes()
+{
+    return $this->belongsToMany(Representante::class, 'cliente_representante', 'cliente_id', 'representante_id')
+                ->using(ClienteRepresentante::class)
+                ->withPivot(['id','fecha_nombramiento','duracion_meses','fecha_fin_nombramiento','numero_acta','numero_acuerdo','activo'])
+                ->withTimestamps();
+}
 
     public function actividades()
     {
@@ -110,4 +119,53 @@ class Cliente extends Model
     {
         return $this->hasMany(HaciendaPresentacion::class, 'cliente_id');
     }
+
+    public function getTipoGobiernoLabelAttribute(): string
+{
+    return match ($this->tipo_gobierno) {
+        'administrador_unico' => 'Administrador Único',
+        'representante'       => 'Representante Legal',
+        default               => 'Sin especificar',
+    };
+}
+
+
+/**
+     * Asigna un nuevo nombramiento a una relación belongsToMany
+     * y marca inactivos los anteriores si el nuevo está vigente.
+     *
+     * @param string $relation Nombre de la relación (auditores o representantes)
+     * @param int $relatedId   ID del auditor o representante
+     * @param array $pivotData Datos adicionales del pivote
+     * @return void
+     */
+    public function asignarNombramiento(string $relation, int $relatedId, array $pivotData): void
+    {
+        // Determinar si el nuevo nombramiento está vigente
+        $vigente = empty($pivotData['fecha_fin_nombramiento'])
+            || Carbon::parse($pivotData['fecha_fin_nombramiento'])->isFuture();
+
+        if ($vigente) {
+            // Marcar inactivos todos los nombramientos activos de este cliente en esa relación
+            $this->{$relation}()
+                ->wherePivot('activo', true)
+                ->updateExistingPivot(
+                    $this->{$relation}()
+                        ->wherePivot('activo', true)
+                        ->pluck($this->{$relation}()->getRelatedPivotKeyName())
+                        ->toArray(),
+                    ['activo' => false]
+                );
+        }
+
+        // Guardar el nuevo nombramiento
+        $this->{$relation}()->attach($relatedId, array_merge($pivotData, [
+            'activo' => $vigente ? true : false,
+            'fecha_nombramiento' => $pivotData['fecha_nombramiento'] ?? now(),
+        ]));
+    }
+
+
+
+
 }

@@ -21,7 +21,7 @@
                     <x-nav-link
                         :href="route('dashboard')"
                         :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                        {{ __('Panel de Control') }}
                     </x-nav-link>
 
                     @if (Auth::user()->rol === 'admin')
@@ -31,6 +31,30 @@
                             {{ __('Usuarios') }}
                         </x-nav-link>
                     @endif
+                    
+                    @if(in_array(Auth::user()->rol, ['admin', 'contador']))
+                        <x-nav-link
+                            :href="route('clientes.index')"
+                            :active="request()->routeIs('clientes.*')">
+                            {{ __('Clientes') }}
+                        </x-nav-link>
+                    
+                    
+                        <x-nav-link
+                            :href="route('representantes.index')"
+                            :active="request()->routeIs('representantes.*')">
+                            {{ __('Representantes') }}
+                        </x-nav-link>
+
+                        <x-nav-link
+                          :href="route('auditores.index')"
+                          :active="request()->routeIs('auditores.*')">
+                            {{ __('Auditores') }}
+                        </x-nav-link>
+
+                    @endif
+
+
                 </div>
             </div>
 
@@ -126,6 +150,28 @@
                     :active="request()->routeIs('users.*')">
                     {{ __('Usuarios') }}
                 </x-responsive-nav-link>
+            @endif
+            @if(in_array(Auth::user()->rol, ['admin', 'contador']))
+                    <x-responsive-nav-link
+                        :href="route('clientes.index')"
+                        :active="request()->routeIs('clientes.*')">
+                        {{ __('Clientes') }}
+                    </x-responsive-nav-link>
+                    
+                    
+                    <x-responsive-nav-link
+                        :href="route('representantes.index')"
+                        :active="request()->routeIs('representantes.*')">
+                        {{ __('Representantes') }}
+                    </x-responsive-nav-link>
+
+                    <x-responsive-nav-link
+                        :href="route('auditores.index')"
+                        :active="request()->routeIs('auditores.*')">
+                        {{ __('Auditores') }}
+                    </x-responsive-nav-link>
+
+
             @endif
         </div>
 
