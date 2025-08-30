@@ -5,14 +5,9 @@
                 border-b border-border dark:border-border-dark
                 px-4 py-3 sm:px-6">
       <h2 class="font-semibold text-xl text-text dark:text-text-dark">
-        {{ __('Dashboard') }}
+        {{ __('Panel Principal') }}
       </h2>
-      @if(Auth::user()->rol === 'admin')
-        <a href="{{ route('users.index') }}"
-           class="px-4 py-2 bg-primary text-primary-contrast rounded hover:bg-primary/90">
-          {{ __('Administrar Usuarios') }}
-        </a>
-      @endif
+     
     </div>
   </x-slot>
 
@@ -21,7 +16,7 @@
       {{-- Panel Principal --}}
       <div class="bg-surface dark:bg-surface-dark overflow-hidden shadow-sm sm:rounded-lg border border-border dark:border-border-dark">
         <div class="p-6 text-text dark:text-text-dark">
-          {{ __("You're logged in!") }}
+          {{ __("Este es tu Panel Principal") }}
         </div>
       </div>
 
@@ -35,10 +30,12 @@
             <p class="text-sm text-muted dark:text-muted-dark mb-4">
               {{ __('Crear, editar y eliminar cuentas de usuario.') }}
             </p>
-            <a href="{{ route('users.create') }}"
-               class="px-3 py-2 bg-secondary text-secondary-contrast rounded hover:bg-secondary/90">
-              {{ __('Nuevo Usuario') }}
-            </a>  
+             
+        <a href="{{ route('users.index') }}"
+           class="px-4 py-2 bg-primary text-primary-contrast rounded hover:bg-primary/90">
+          {{ __('Administrar Usuarios') }}
+        </a>
+
           </div>
         </div>
         @endif
@@ -53,9 +50,9 @@
             <p class="text-sm text-muted dark:text-muted-dark mb-4">
               {{ __('Crear, editar y eliminar información de clientes.') }}
             </p>
-            <a href="{{ route('clientes.create') }}"
+            <a href="{{ route('clientes.index') }}"
                class="px-3 py-2 bg-secondary text-secondary-contrast rounded hover:bg-secondary/90">
-              {{ __('Nuevo Cliente') }}
+              {{ __('Clientes') }}
             </a>
           </div>
         </div>
@@ -69,9 +66,9 @@
             <p class="text-sm text-muted dark:text-muted-dark mb-4">
               {{ __('Crear, editar y eliminar representantes legales vinculados a clientes.') }}
             </p>
-            <a href="{{ route('representantes.create') }}"
+            <a href="{{ route('representantes.index') }}"
             class="px-3 py-2 bg-secondary text-secondary-contrast rounded hover:bg-secondary/90">
-              {{ __('Nuevo Representante') }}
+              {{ __('Representantes') }}
             </a>
           </div>
     </div>
@@ -86,9 +83,9 @@
         <p class="text-sm text-muted dark:text-muted-dark mb-4">
         {{ __('Crear, editar y eliminar auditores vinculados a clientes.') }}
         </p>
-        <a href="{{ route('auditores.create') }}"
+        <a href="{{ route('auditores.index') }}"
         class="px-3 py-2 bg-secondary text-secondary-contrast rounded hover:bg-secondary/90">
-          {{ __('Nuevo Auditor') }}
+          {{ __('Auditores') }}
         </a>
       </div>
     </div>
