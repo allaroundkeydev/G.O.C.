@@ -1,20 +1,19 @@
 <?php
-//app\Models\Tarea.php
+// app/Models/Tarea.php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tarea extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    // Si tu tabla se llama “tareas” no es necesario, pero lo dejo para que quede explícito
+    protected $table = 'tareas';
+
     protected $fillable = [
         'nombre',
         'descripcion',
@@ -22,43 +21,59 @@ class Tarea extends Model
         'created_by',
     ];
 
+    protected $casts = [
+        'institucion_id' => 'integer',
+        'created_by'     => 'integer',
+        'deleted_at'     => 'datetime',
+    ];
+
     /**
-     * Get the institucion that owns this tarea.
+     * La institución (Alcaldía, Hacienda…) a la que pertenece esta plantilla.
      */
     public function institucion()
     {
-        return $this->belongsTo(Institucion::class, 'institucion_id');
+        return $this->belongsTo(Institucion::class);
     }
 
     /**
-     * Get the user who created this tarea.
+     * El usuario (contador/admin) que creó esta plantilla.
      */
-    public function createdBy()
+    public function creador()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
-     * Get the campos for this tarea.
+     * Los campos dinámicos que definen el formulario de esta plantilla.
      */
     public function campos()
     {
-        return $this->hasMany(TareaCampo::class, 'tarea_id');
+        // Ordenamos por la posición que definiste en la columna `orden`
+        return $this->hasMany(TareaCampo::class, 'tarea_id')
+                    ->orderBy('orden');
     }
 
     /**
-     * Get the tareas clientes for this tarea.
+     * Las asignaciones de esta plantilla a clientes (tareas_clientes).
      */
-    public function tareasClientes()
+    public function asignaciones()
     {
         return $this->hasMany(TareaCliente::class, 'tarea_id');
     }
 
     /**
-     * Get the tareas instancias for this tarea.
+     * Todas las instancias concretas (tareas_instancias) derivadas de esta plantilla.
      */
     public function instancias()
     {
         return $this->hasMany(TareaInstancia::class, 'tarea_id');
+    }
+
+    /**
+     * Scope para plantillas activas (no “eliminadas”).
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereNull('deleted_at');
     }
 }

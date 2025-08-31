@@ -1,12 +1,15 @@
 <?php
+// app/Models/TareaCliente.php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TareaCliente extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'tareas_clientes';
 
@@ -23,9 +26,12 @@ class TareaCliente extends Model
     ];
 
     protected $casts = [
+        'recurrence_rule'   => 'string',
         'alerta_dias_antes' => 'integer',
-        'activo' => 'boolean',
+        'activo'            => 'boolean',
     ];
+
+    // Relaciones
 
     public function tarea()
     {

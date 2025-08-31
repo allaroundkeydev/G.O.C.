@@ -1,110 +1,73 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
+use App\Models\Tarea;
 use App\Models\TareaCliente;
-use App\Http\Requests\StoreTareaClienteRequest;
-use App\Http\Requests\UpdateTareaClienteRequest;
+use App\Models\User;
+use App\Models\Institucion;
+
 use Illuminate\Http\Request;
 
 class TareaClienteController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+    // 1. Listado de asignaciones de tareas para un cliente
+    public function index(Cliente $cliente)
     {
-        // Filtering logic will be added here based on query params
-        return TareaCliente::all();
+        $asignaciones = $cliente
+            ->tareasClientes()
+            ->with(['tarea','contador','auditor','representante'])
+            ->get();
+
+        return view('clientes.tareas.index', compact('cliente','asignaciones'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreTareaClienteRequest $request)
+    // 2. Formulario de nueva asignación
+    public function create(Cliente $cliente)
     {
-        $tareaCliente = TareaCliente::create($request->validated());
-        return response()->json($tareaCliente, 201);
-    }
+        $plantillas     = Tarea::pluck('nombre','id');
+        $contadores     = User::where('rol','contador')
+                              ->pluck('nombre_completo','id');
+        $auditores = $cliente
+        ->auditores()                // mantiene tu orderByDesc en la relación
+        ->get()                      // carga la colección
+        ->pluck('nombre','id');      // ahora 'id' siempre es auditores.id
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(TareaCliente $tareasCliente)
-    {
-        return $tareasCliente;
-    }
+    $representantes = $cliente
+        ->representantes()
+        ->get()
+        ->pluck('nombre','id');
+$instituciones = Institucion::pluck('nombre','id');
 
-    /**
-     * Update the specified resource in storage.
-     */
-    <?php
 
-namespace App\Http\Controllers;
-
-use App\Models\TareaCliente;
-use App\Http\Requests\StoreTareaClienteRequest;
-use App\Http\Requests\UpdateTareaClienteRequest;
-use Illuminate\Http\Request;
-
-class TareaClienteController extends Controller
-{
-    public function __construct()
-    {
-        $this->authorizeResource(TareaCliente::class, 'tareas_cliente');
-    }
-
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
-    {
-        // Filtering logic will be added here based on query params
-        return TareaCliente::all();
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreTareaClienteRequest $request)
-    {
-        $tareaCliente = TareaCliente::create($request->validated());
-        return response()->json($tareaCliente, 201);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(TareaCliente $tareasCliente)
-    {
-        return $tareasCliente;
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateTareaClienteRequest $request, TareaCliente $tareasCliente)
-    {
-        $tareasCliente->update($request->validated());
-        return response()->json($tareasCliente, 200);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(TareaCliente $tareasCliente)
-    {
-        $tareasCliente->delete();
-        return response()->json(null, 204);
-    }
+    return view('clientes.tareas.create', compact(
+        'cliente','plantillas','contadores',
+        'auditores','representantes','instituciones'
+    ));
 }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(TareaCliente $tareasCliente)
+
+    // 3. Guardar nueva asignación
+    public function store(Request $request, Cliente $cliente)
     {
-        $tareasCliente->delete();
-        return response()->json(null, 204);
+        $validated = $request->validate([
+            'tarea_id'           => 'required|exists:tareas,id',
+            'contador_id'        => 'nullable|exists:users,id',
+            'auditor_id'         => 'nullable|exists:auditores,id',
+            'representante_id'   => 'nullable|exists:representantes,id',
+            'institucion_id'     => 'nullable|exists:instituciones,id',
+            'recurrence_rule'    => 'nullable|string',
+            'alerta_dias_antes'  => 'required|integer|min:0',
+            'activo'             => 'boolean',
+        ]);
+
+        $cliente->tareasClientes()->create(array_merge(
+            $validated,
+            ['activo' => $validated['activo'] ?? true]
+        ));
+
+        return redirect()
+            ->route('clientes.tareas.index', $cliente)
+            ->with('success','Tarea asignada correctamente.');
     }
 }

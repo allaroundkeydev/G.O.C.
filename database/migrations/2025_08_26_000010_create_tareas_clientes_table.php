@@ -23,7 +23,8 @@ return new class extends Migration
             $table->integer('alerta_dias_antes')->default(7);
             $table->boolean('activo')->default(true);
             $table->timestamps();
-            
+            $table->softDeletes();
+
             // Unique constraint
             $table->unique(['tarea_id', 'cliente_id']);
             

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\RepresentanteController;
 use App\Http\Controllers\AuditorController;
+use App\Http\Controllers\TareaClienteController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -71,6 +72,27 @@ Route::get('clientes/{cliente}/asignar-representante', [ClienteController::class
 // Guardar asignación de representante
 Route::post('clientes/{cliente}/asignar-representante', [ClienteController::class, 'guardarAsignacionRepresentante'])
     ->name('clientes.guardarAsignacionRepresentante');
+
+// Asignaciones de tarea por cliente
+Route::prefix('clientes/{cliente}')
+     ->name('clientes.tareas.')
+     ->middleware(['auth', 'verified'])
+     ->group(function () {
+    
+    Route::get('tareas',        [TareaClienteController::class, 'index'])
+         ->name('index');
+    
+    Route::get('tareas/create', [TareaClienteController::class, 'create'])
+         ->name('create');
+    
+    Route::post('tareas',       [TareaClienteController::class, 'store'])
+         ->name('store');
+    
+    // Opcional: edit/update/delete más adelante
+    // Route::get('tareas/{tareaCliente}/edit',  ...)->name('edit');
+    // Route::put('tareas/{tareaCliente}',       ...)->name('update');
+    // Route::delete('tareas/{tareaCliente}',    ...)->name('destroy');
+});
 
 
 

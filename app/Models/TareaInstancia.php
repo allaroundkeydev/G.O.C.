@@ -1,8 +1,10 @@
 <?php
+// app/Models/TareaInstancia.php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TareaInstancia extends Model
@@ -11,11 +13,9 @@ class TareaInstancia extends Model
 
     protected $table = 'tareas_instancias';
 
-    const STATUS_PENDING = 'PENDIENTE';
-    const STATUS_REALIZADA = 'REALIZADA';
-    const STATUS_APLAZADA = 'APLAZADA';
-    const STATUS_FINALIZADA = 'FINALIZADA';
-    const STATUS_CADUCADA = 'CADUCADA';
+    const STATUS_PENDING    = 'PENDIENTE';
+    const STATUS_COMPLETED  = 'REALIZADA';
+    const STATUS_OVERDUE    = 'CADUCADA';
 
     protected $fillable = [
         'tarea_id',
@@ -34,8 +34,10 @@ class TareaInstancia extends Model
     protected $casts = [
         'fecha_vencimiento' => 'datetime',
         'fecha_realizacion' => 'datetime',
-        'datos_snapshot' => 'array',
+        'datos_snapshot'    => 'array',
     ];
+
+    // Relaciones
 
     public function tarea()
     {
@@ -72,10 +74,12 @@ class TareaInstancia extends Model
         return $this->hasMany(TareaInstanciaValor::class, 'instancia_id');
     }
 
-    public function notifications()
+    public function notificaciones()
     {
-        return $this->hasMany(Notificacion::class, 'instancia_id'); // ver nota sobre Notificacion vs Notification
+        return $this->hasMany(Notificacion::class, 'instancia_id');
     }
+
+    // Scopes
 
     public function scopePending($query)
     {
@@ -84,22 +88,18 @@ class TareaInstancia extends Model
 
     public function scopeCompleted($query)
     {
-        return $query->whereIn('estado', [self::STATUS_REALIZADA, self::STATUS_FINALIZADA]);
+        return $query->where('estado', self::STATUS_COMPLETED);
     }
 
     public function scopeOverdue($query)
     {
-        return $query->where('fecha_vencimiento', '<', now())
-                     ->where('estado', self::STATUS_PENDING);
+        return $query->where('estado', self::STATUS_PENDING)
+                     ->where('fecha_vencimiento', '<', now());
     }
 
-    /**
-     * Scope for instances due within X days (inclusive).
-     */
     public function scopeDueInDays($query, int $days)
     {
-        $to = now()->addDays($days)->endOfDay();
-        return $query->whereBetween('fecha_vencimiento', [now(), $to])
-                     ->where('estado', self::STATUS_PENDING);
+        return $query->where('estado', self::STATUS_PENDING)
+                     ->whereBetween('fecha_vencimiento', [now(), now()->addDays($days)]);
     }
 }
