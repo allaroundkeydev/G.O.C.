@@ -1,18 +1,15 @@
 <?php
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ClienteRepresentante extends Pivot
 {
-    use HasFactory;
-
     protected $table = 'cliente_representante';
-
     protected $primaryKey = 'id';
     public $incrementing = true;
-    public $timestamps = true;
+    public $timestamps   = true;
 
     protected $fillable = [
         'cliente_id',
@@ -23,20 +20,20 @@ class ClienteRepresentante extends Pivot
         'numero_acta',
         'numero_acuerdo',
         'activo',
-        'created_at',
-        'updated_at',
     ];
 
     protected $casts = [
-        'id' => 'integer',
-        'cliente_id' => 'integer',
-        'representante_id' => 'integer',
-        'fecha_nombramiento' => 'date',
-        'fecha_fin_nombramiento' => 'date',
-        'duracion_meses' => 'integer',
-        'activo' => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'id'                      => 'integer',
+        'cliente_id'              => 'integer',
+        'representante_id'        => 'integer',
+        'fecha_nombramiento'      => 'date',
+        'duracion_meses'          => 'integer',
+        'fecha_fin_nombramiento'  => 'date',
+        'numero_acta'             => 'string',
+        'numero_acuerdo'          => 'string',
+        'activo'                  => 'boolean',
+        'created_at'              => 'datetime',
+        'updated_at'              => 'datetime',
     ];
 
     public function cliente()

@@ -7,6 +7,9 @@ use App\Http\Requests\StoreRepresentanteRequest;
 use App\Http\Requests\UpdateRepresentanteRequest;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;        // ← Asegúrate de tener esto
+use Illuminate\Http\JsonResponse;   // opcional, si quieres tipar el return
+
 
 class RepresentanteController extends Controller
 {

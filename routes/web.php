@@ -25,6 +25,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])
          ->name('profile.destroy');
 
+         Route::get('clientes/{cliente}', [ClienteController::class, 'show'])
+     ->name('clientes.show');
+
+
          Route::get('clientes/{cliente}/asignar-representante', [ClienteController::class, 'formAsignarRepresentante'])
     ->name('clientes.asignarRepresentante');
 

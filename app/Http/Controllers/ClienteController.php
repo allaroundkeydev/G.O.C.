@@ -174,6 +174,36 @@ public function guardarAsignacionRepresentante(Request $request, Cliente $client
 }
 
 
+public function show(Cliente $cliente)
+{
+    // Carga relaciones con pivotes
+    $cliente->load([
+        'auditores'     => fn($q) => $q->withPivot(
+            'fecha_nombramiento',
+            'fecha_fin_nombramiento',
+            'activo',
+            'notas'
+        )->orderByDesc('pivot_fecha_nombramiento'),
+        'representantes'=> fn($q) => $q->withPivot(
+            'fecha_nombramiento',
+            'duracion_meses',
+            'fecha_fin_nombramiento',
+            'numero_acta',
+            'numero_acuerdo',
+            'activo'
+        )->orderByDesc('pivot_fecha_nombramiento'),
+    ]);
+
+    // Nombramiento vigente
+    $auditorActual      = $cliente->auditores->first(fn($a) => $a->pivot->activo);
+    $representanteActual= $cliente->representantes->first(fn($r) => $r->pivot->activo);
+
+    return view('clientes.show', compact(
+        'cliente',
+        'auditorActual',
+        'representanteActual'
+    ));
+}
 
 
 

@@ -25,34 +25,53 @@ class Cliente extends Model
         'fecha_inscripcion'  => 'date',
     ];
 
-public function auditores()
-{
-    return $this->belongsToMany(
-        Auditor::class,
-        'cliente_auditor',
-        'cliente_id',
-        'auditor_id'
-    )
-    ->withPivot([
-        'fecha_nombramiento',
-        'fecha_fin_nombramiento',
-        'activo',
-        'notas'
-    ])
-    ->withTimestamps()
-    ->orderByDesc('pivot_fecha_nombramiento'); // 👈 ordena por fecha más reciente
-}
+    /**
+     * Relación con auditores, usando pivot model ClienteAuditor
+     */
+    public function auditores()
+    {
+        return $this->belongsToMany(
+                Auditor::class,
+                'cliente_auditor',
+                'cliente_id',
+                'auditor_id'
+            )
+            ->using(ClienteAuditor::class)
+            ->withPivot([
+                'fecha_nombramiento',
+                'fecha_fin_nombramiento',
+                'activo',
+                'notas',
+            ])
+            ->withTimestamps()
+            ->orderByDesc('pivot_fecha_nombramiento');
+    }
+
+    /**
+     * Relación con representantes, usando pivot model ClienteRepresentante
+     */
+    public function representantes()
+    {
+        return $this->belongsToMany(
+                Representante::class,
+                'cliente_representante',
+                'cliente_id',
+                'representante_id'
+            )
+            ->using(ClienteRepresentante::class)
+            ->withPivot([
+                'fecha_nombramiento',
+                'duracion_meses',
+                'fecha_fin_nombramiento',
+                'numero_acta',
+                'numero_acuerdo',
+                'activo',
+            ])
+            ->withTimestamps()
+            ->orderByDesc('pivot_fecha_nombramiento');
+    }
 
 
-
-
-public function representantes()
-{
-    return $this->belongsToMany(Representante::class, 'cliente_representante', 'cliente_id', 'representante_id')
-                ->using(ClienteRepresentante::class)
-                ->withPivot(['id','fecha_nombramiento','duracion_meses','fecha_fin_nombramiento','numero_acta','numero_acuerdo','activo'])
-                ->withTimestamps();
-}
 
     public function actividades()
     {
@@ -131,41 +150,33 @@ public function representantes()
 
 
 /**
-     * Asigna un nuevo nombramiento a una relación belongsToMany
-     * y marca inactivos los anteriores si el nuevo está vigente.
-     *
-     * @param string $relation Nombre de la relación (auditores o representantes)
-     * @param int $relatedId   ID del auditor o representante
-     * @param array $pivotData Datos adicionales del pivote
-     * @return void
+     * Asigna un nuevo nombramiento y desactiva los anteriores si el nuevo está vigente.
      */
     public function asignarNombramiento(string $relation, int $relatedId, array $pivotData): void
     {
-        // Determinar si el nuevo nombramiento está vigente
+        // Vigencia: no tiene fecha_fin o es futura
         $vigente = empty($pivotData['fecha_fin_nombramiento'])
             || Carbon::parse($pivotData['fecha_fin_nombramiento'])->isFuture();
 
         if ($vigente) {
-            // Marcar inactivos todos los nombramientos activos de este cliente en esa relación
+            $pivotKey = $this->{$relation}()->getRelatedPivotKeyName();
+
+            // Desactivar los anteriores
             $this->{$relation}()
                 ->wherePivot('activo', true)
                 ->updateExistingPivot(
                     $this->{$relation}()
                         ->wherePivot('activo', true)
-                        ->pluck($this->{$relation}()->getRelatedPivotKeyName())
+                        ->pluck($pivotKey)
                         ->toArray(),
                     ['activo' => false]
                 );
         }
 
-        // Guardar el nuevo nombramiento
+        // Insertar el nuevo
         $this->{$relation}()->attach($relatedId, array_merge($pivotData, [
-            'activo' => $vigente ? true : false,
+            'activo'             => $vigente,
             'fecha_nombramiento' => $pivotData['fecha_nombramiento'] ?? now(),
         ]));
     }
-
-
-
-
 }

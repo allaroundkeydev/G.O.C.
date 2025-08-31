@@ -47,38 +47,61 @@
                   @endif
                 </td>
 
-                <!-- Botones -->
                 <td class="px-4 py-2 flex flex-wrap gap-2 justify-center">
-                  <!-- Asignar/Cambiar Auditor -->
-                  <a href="{{ route('clientes.asignarAuditor', $cliente) }}"
-                     class="px-2 py-1 rounded text-white
-                            {{ $cliente->auditores->count() ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-indigo-600 hover:bg-indigo-700' }}">
-                    {{ $cliente->auditores->count() ? 'Cambiar / Confirmar Auditor' : 'Asignar Auditor' }}
-                  </a>
 
-                  <!-- Asignar/Cambiar Representante -->
-                  <a href="{{ route('clientes.asignarRepresentante', $cliente) }}"
-                     class="px-2 py-1 rounded text-white
-                            {{ $cliente->representantes->count() ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-indigo-600 hover:bg-indigo-700' }}">
-                    {{ $cliente->representantes->count() ? 'Cambiar / Confirmar Representante' : 'Asignar Representante' }}
-                  </a>
+  <!-- Asignar / confirmar Auditor -->
+  <a href="{{ route('clientes.asignarAuditor', $cliente) }}"
+     title="Asignar o confirmar auditor"
+     aria-label="Asignar o confirmar auditor"
+     class="inline-flex items-center p-1 text-white bg-indigo-600 hover:bg-indigo-700 rounded">
+    <x-heroicon-o-user-group class="h-5 w-5" />
+    <span class="ml-1 text-sm">Aud.</span>
+  </a>
 
-                  <!-- Editar -->
-                  <a href="{{ route('clientes.edit', $cliente) }}"
-                     class="px-2 py-1 bg-secondary text-secondary-contrast rounded hover:bg-secondary/90">
-                    Editar
-                  </a>
+  <!-- Asignar / confirmar Representante -->
+  <a href="{{ route('clientes.asignarRepresentante', $cliente) }}"
+     title="Asignar o confirmar representante"
+     aria-label="Asignar o confirmar representante"
+     class="inline-flex items-center p-1 text-black bg-yellow-400 hover:bg-yellow-500 rounded">
+    <x-heroicon-o-user-circle class="h-5 w-5" />
+    <span class="ml-1 text-sm">Rep.</span>
+  </a>
 
-                  <!-- Eliminar -->
-                  <form action="{{ route('clientes.destroy', $cliente) }}" method="POST"
-                        onsubmit="return confirm('¿Eliminar este cliente?')">
-                    @csrf @method('DELETE')
-                    <button type="submit"
-                            class="px-2 py-1 bg-error text-primary-contrast rounded hover:bg-error/90">
-                      Eliminar
-                    </button>
-                  </form>
-                </td>
+  <!-- Ver detalle del Cliente -->
+  <a href="{{ route('clientes.show', $cliente) }}"
+     title="Ver detalle del cliente"
+     aria-label="Ver detalle del cliente"
+     class="inline-flex items-center p-1 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded">
+    <x-heroicon-o-eye class="h-5 w-5" />
+    <span class="ml-1 text-sm">Ver</span>
+  </a>
+
+  <!-- Editar Cliente -->
+  <a href="{{ route('clientes.edit', $cliente) }}"
+     title="Editar cliente"
+     aria-label="Editar cliente"
+     class="inline-flex items-center p-1 bg-secondary text-secondary-contrast hover:bg-secondary/90 rounded">
+    <x-heroicon-o-pencil class="h-5 w-5" />
+    <span class="ml-1 text-sm">Edit</span>
+  </a>
+
+  <!-- Eliminar Cliente -->
+  <form action="{{ route('clientes.destroy', $cliente) }}"
+        method="POST"
+        onsubmit="return confirm('¿Eliminar este cliente?')"
+        class="inline-block">
+    @csrf
+    @method('DELETE')
+    <button type="submit"
+            title="Eliminar cliente"
+            aria-label="Eliminar cliente"
+            class="inline-flex items-center p-1 bg-error text-primary-contrast hover:bg-error/90 rounded">
+      <x-heroicon-o-trash class="h-5 w-5" />
+      <span class="ml-1 text-sm">Del</span>
+    </button>
+  </form>
+
+</td>
               </tr>
             @endforeach
           </tbody>
